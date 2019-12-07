@@ -1,7 +1,7 @@
-import cv2
+# import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-import glob
+# import glob
 
 import os
 import torch
@@ -12,7 +12,7 @@ from torch.autograd import Variable
 import torch.nn as nn
 import torch.nn.functional as F
 
-import gc
+# import gc
 import pandas as pd
 # from PIL import Image
 
@@ -22,7 +22,7 @@ from torch.utils.data import Dataset, DataLoader
 
 # from torchsummary import summary
 
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 
 
 class CubsDataset(Dataset):
