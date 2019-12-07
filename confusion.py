@@ -119,6 +119,9 @@ optimizer = torch.optim.SGD(resnet.parameters(), lr=1e-6, momentum=0.9)
 num_epochs = 10
 num_classes = 200
 
+loss_epoch = []
+accuracy_epoch = []
+
 gamma = 0
 l_ambda = 10
 batch_size = 30
@@ -175,7 +178,7 @@ for epoch in range(num_epochs):
 
 
 
-
+    loss_epoch.append(loss_batch.item())
     print("Epoch: ", (epoch + 1), " Loss: ", loss_batch.item())
     for param_group in optimizer.param_groups:
         print("lr: ", param_group['lr'])
@@ -191,12 +194,19 @@ for epoch in range(num_epochs):
         _, predicted = torch.max(outputs.data, 1)
         total += labels.size(0)
         correct += (predicted == labels).sum().item()
-
-    print('Accuracy: ', (correct/total))
+    
+    acc = 100*correct/total
+    accuracy_epoch.append(acc)
+    print('Accuracy: ', acc)
 
 print("finished training")
 
 # gc.collect()
+
+epochs_axis = list(range(1,num_epochs+1))
+plt.plot(loss_epoch,epochs_axis)
+plt.plot(accuracy_epoch,epochs_axis)
+
 
 resnet.eval()  # eval mode 
 with torch.no_grad():
