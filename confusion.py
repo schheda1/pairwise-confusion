@@ -114,9 +114,9 @@ print('training about to start')
 
 resnet = resnet.float().to(device)
 criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.SGD(resnet.parameters(), lr=1e-6, momentum=0.9)
+optimizer = torch.optim.SGD(resnet.parameters(), lr=1e-2, momentum=0.9)
 # optimizer = torch.optim.Adamax(model.parameters(), lr=0.01)
-num_epochs = 10
+num_epochs = 15
 num_classes = 200
 
 loss_epoch = []
@@ -153,10 +153,12 @@ for epoch in range(num_epochs):
         # Siamese behavior of the network is shown here
         op1 = resnet(d1_image)
         loss1 = criterion(op1, d11_label)
-
+        p1 = F.softmax(op1, dim=1)
+        
         op2 = resnet(d2_image)
         loss2 = criterion(op2, d22_label)
-
+        p2 = F.softmax(op2, dim=1)
+        
         # set gamma && calculate d_ec only if they belong to different classes
         # print(loss1, loss2)
 
@@ -164,7 +166,7 @@ for epoch in range(num_epochs):
             if d1_label[j] != d2_label[j]:
                 gamma = 1
                 count += 1
-                d_ec = sum(sum([abs(op1[j, :] - op2[j, :]) ** 2]))
+                d_ec = sum(sum([abs(p1[j, :] - p2[j, :]) ** 2]))
             else:
                 gamma = 0
                 d_ec = 0
@@ -209,7 +211,7 @@ epochs_axis = list(range(1,num_epochs+1))
 plt.plot(loss_epoch,epochs_axis)
 plt.plot(accuracy_epoch,epochs_axis)
 
-
+print('testing now..')
 resnet.eval()  # eval mode 
 with torch.no_grad():
     correct = 0
@@ -222,7 +224,6 @@ with torch.no_grad():
         _, predicted = torch.max(outputs.data, 1)
         total += labels.size(0)
         correct += (predicted == labels).sum().item()
-        print(ind)
 
     print('Test Accuracy of the model: {} %'.format(correct / total))
 
