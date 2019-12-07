@@ -130,8 +130,10 @@ batch_size = 30
 
 for epoch in range(num_epochs):
     # generating a shuffled dataloader of training set
-    D1 = DataLoader(train_sampler, batch_size=batch_size, shuffle=True)
-    D2 = DataLoader(train_sampler, batch_size=batch_size, shuffle=True)
+  D1 = DataLoader(cubs_dataset_train, batch_size=batch_size, 
+                                           sampler=train_sampler)
+  D2 = DataLoader(cubs_dataset_train, batch_size=batch_size, 
+                                           sampler=train_sampler)
     total_step = len(D1)
 
     for index, ((d1_image, d1_label), (d2_image, d2_label)) in enumerate(zip(D1, D2)):
