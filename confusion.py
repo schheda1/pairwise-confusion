@@ -83,7 +83,7 @@ print('loaded train and test sets')
 
 ### create validation set
 
-batch_size = 30
+batch_size = 12
 validation_split = .05
 shuffle_dataset = True
 random_seed= 43
