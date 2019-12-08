@@ -114,7 +114,7 @@ print('training about to start')
 
 resnet = resnet.float().to(device)
 criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.SGD(resnet.parameters(), lr=1e-2, momentum=0.9)
+optimizer = torch.optim.SGD(resnet.parameters(), lr=1e-2, momentum=0.9, weight_decay=0.005)
 # optimizer = torch.optim.Adamax(model.parameters(), lr=0.01)
 num_epochs = 15
 num_classes = 200
