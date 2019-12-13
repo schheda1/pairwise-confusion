@@ -71,12 +71,17 @@ class CubsDataset(Dataset):
         return image, class_id
 
 
-transforms_example = transforms.Compose([transforms.Resize((224, 224)),
+transforms_train = transforms.Compose([transforms.Resize((224, 224)),
+                                         transforms.RandomHorizontalFlip(),
                                          transforms.ToTensor()
                                          ])
 
-cubs_dataset_train = CubsDataset(root='datasets', transform=transforms_example)  # train #can use loader=pil_image
-cubs_dataset_test = CubsDataset(root='datasets', train=False, transform=transforms_example)
+transforms_train = transforms.Compose([transforms.Resize((224, 224)),
+                                         transforms.ToTensor()
+                                         ])
+
+cubs_dataset_train = CubsDataset(root='datasets', transform=transforms_train)  # train #can use loader=pil_image
+cubs_dataset_test = CubsDataset(root='datasets', train=False, transform=transforms_test)
 print(len(cubs_dataset_train))
 print(len(cubs_dataset_test))
 print('loaded train and test sets')
@@ -114,7 +119,7 @@ print('training about to start')
 
 resnet = resnet.float().to(device)
 criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.SGD(resnet.parameters(), lr=1e-2, momentum=0.9, weight_decay=0.005)
+optimizer = torch.optim.SGD(resnet.parameters(), lr=1e-2, momentum=0.9, weight_decay=0.0001)
 # optimizer = torch.optim.Adamax(model.parameters(), lr=0.01)
 num_epochs = 15
 num_classes = 200
@@ -124,7 +129,7 @@ accuracy_epoch = []
 
 gamma = 0
 l_ambda = 10
-batch_size = 30
+batch_size = 12
 # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
 
