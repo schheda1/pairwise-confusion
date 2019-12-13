@@ -101,12 +101,14 @@ valid_sampler = SubsetRandomSampler(val_indices)
 
 
 
-resnet = torch.load('model')
-# gc.collect()
+checkpoint = torch.load('model/js_new_run/modeljs_12.pth')
+# resnet = models.resnet50(pretrained=False)
+# resnset.fc = nn.Sequential(
+#        nn.Linear(2048, 200, bias=True)
+#        )
+resnet = checkpoint['model']
+resnet.load_state_dict(checkpoint['state_dict'])
 
-# epochs_axis = list(range(1,num_epochs+1))
-# plt.plot(loss_epoch,epochs_axis)
-# plt.plot(accuracy_epoch,epochs_axis)
 
 
 resnet.eval()  # eval mode 
