@@ -22,7 +22,7 @@ from torch.utils.data import Dataset, DataLoader
 
 # from torchsummary import summary
 
-device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
 
 
 class CubsDataset(Dataset):
@@ -70,12 +70,13 @@ class CubsDataset(Dataset):
 
         return image, class_id
 
-
+# transforms for training set
 transforms_train = transforms.Compose([transforms.Resize((224, 224)),
                                          transforms.RandomHorizontalFlip(),
                                          transforms.ToTensor()
                                          ])
 
+# transforms for testing set
 transforms_train = transforms.Compose([transforms.Resize((224, 224)),
                                          transforms.ToTensor()
                                          ])
@@ -85,6 +86,7 @@ cubs_dataset_test = CubsDataset(root='datasets', train=False, transform=transfor
 print(len(cubs_dataset_train))
 print(len(cubs_dataset_test))
 print('loaded train and test sets')
+
 
 ### create validation set
 
@@ -106,7 +108,7 @@ valid_sampler = SubsetRandomSampler(val_indices)
 
 
 
-
+#pretrained resnet-50 backbone to the Siamese learning method
 resnet = models.resnet50(pretrained=True)
 
 # resnet.to(device)
@@ -119,6 +121,8 @@ print('training about to start')
 base_lr = 1e-3
 resnet = resnet.float().to(device)
 criterion = nn.CrossEntropyLoss()
+
+## Learning with Stochastic Gradient Descent
 optimizer = torch.optim.SGD(resnet.parameters(), lr=base_lr, momentum=0.9, weight_decay=0.0001)
 # optimizer = torch.optim.Adamax(model.parameters(), lr=0.01)
 num_epochs = 32
@@ -130,17 +134,19 @@ accuracy_epoch = []
 gamma = 0
 l_ambda = 10
 batch_size = 12
+
+## keeping a adaptive learning rate that decays with time
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
 
 for epoch in range(num_epochs):
-    # generating a shuffled dataloader of training set
+    # generating a shuffled dataloader of training sets
   D1 = DataLoader(cubs_dataset_train, batch_size=batch_size, 
                                            sampler=train_sampler)
   D2 = DataLoader(cubs_dataset_train, batch_size=batch_size, 
                                            sampler=train_sampler)
     total_step = len(D1)
-    t_loss = 0
+    t_loss = 0 ## total training loss per epoch definied by t_loss
 
     for index, ((d1_image, d1_label), (d2_image, d2_label)) in enumerate(zip(D1, D2)):
         # sending all images to GPU (if available, defaults to cpu if gpu unavailable)
@@ -166,8 +172,6 @@ for epoch in range(num_epochs):
         p2 = F.softmax(op2, dim=1)
         
         # set gamma && calculate d_ec only if they belong to different classes
-        # print(loss1, loss2)
-
         for j in range(len_batch):
             if d1_label[j] != d2_label[j]:
                 gamma = 1
@@ -179,7 +183,7 @@ for epoch in range(num_epochs):
 
             ec_batch += l_ambda * gamma * d_ec
 
-        loss_batch = loss1 + loss2 + ec_batch / count
+        loss_batch = loss1 + loss2 + ec_batch / count ## total loss including Cross Entropy Loss for both batches and EC loss
         t_loss += loss_batch.item()
         
         optimizer.zero_grad()
@@ -191,19 +195,19 @@ for epoch in range(num_epochs):
 
 
     #loss_epoch.append(loss_batch.item())
-    epoch_loss = t_loss/len(D1)
+    epoch_loss = t_loss/len(D1) ## calculating average loss per epoch
     string = "Epoch: "+ str(epoch + 1) + " Loss: "+ str(epoch_loss) + "\n"
     print(string)
     # file.write(string)
     #for param_group in optimizer.param_groups:
         #print("lr: ", param_group['lr'])
     
-    
+    ## perform validation after each epoch
     with torch.no_grad():
          correct = 0
          total = 0
-         v_loss = 0
-         r_loss = 0
+         v_loss = 0 ## represents validation loss
+         r_loss = 0 ## represents the final loss for all samples (redundant)
          D3 = DataLoader(cubs_dataset_train, batch_size=batch_size,
                        sampler=valid_sampler)
          for ind, (images, labels) in enumerate(D3):
@@ -223,6 +227,8 @@ for epoch in range(num_epochs):
          file.write(string3)
          print('Accuracy: ', acc, " Validation Loss: ", r_loss/len(D3))
     
+    '''
+    # make checkpoints 
     if v_loss.item() < 61.00:
         checkpoint = {
                 'model': resnet, 
@@ -232,6 +238,8 @@ for epoch in range(num_epochs):
         mod_name = "model/model_1_" + str(epoch) + ".pth"
         # torch.save(checkpoint, mod_name)
         # print("model saved")
+    '''
+    # freeze network except layer4 and last linear layer
     if epoch == 29:
         for params in resnet.parameters():
             params.require_grad = False
@@ -241,7 +249,8 @@ for epoch in range(num_epochs):
             params.require_grad = True
 
         l_ambda = 1
-
+    
+    # step scheduler for learning rate decay
     scheduler.step()
     for param_group in optimizer.param_groups:
         print("lr: ", param_group['lr'])
