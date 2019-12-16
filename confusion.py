@@ -116,21 +116,21 @@ resnet.fc = nn.Sequential(
     nn.Linear(2048, 200, bias=True)
 )
 print('training about to start')
-
+base_lr = 1e-3
 resnet = resnet.float().to(device)
 criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.SGD(resnet.parameters(), lr=1e-2, momentum=0.9, weight_decay=0.0001)
+optimizer = torch.optim.SGD(resnet.parameters(), lr=base_lr, momentum=0.9, weight_decay=0.0001)
 # optimizer = torch.optim.Adamax(model.parameters(), lr=0.01)
-num_epochs = 15
+num_epochs = 32
 num_classes = 200
-
+file=open("ec_log.txt","a")
 loss_epoch = []
 accuracy_epoch = []
 
 gamma = 0
 l_ambda = 10
 batch_size = 12
-# scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
 
 for epoch in range(num_epochs):
@@ -140,6 +140,7 @@ for epoch in range(num_epochs):
   D2 = DataLoader(cubs_dataset_train, batch_size=batch_size, 
                                            sampler=train_sampler)
     total_step = len(D1)
+    t_loss = 0
 
     for index, ((d1_image, d1_label), (d2_image, d2_label)) in enumerate(zip(D1, D2)):
         # sending all images to GPU (if available, defaults to cpu if gpu unavailable)
@@ -179,44 +180,81 @@ for epoch in range(num_epochs):
             ec_batch += l_ambda * gamma * d_ec
 
         loss_batch = loss1 + loss2 + ec_batch / count
+        t_loss += loss_batch.item()
+        
         optimizer.zero_grad()
         loss_batch.backward()
         optimizer.step()
-        if (index + 1) % 10 == 0:
+        if (index + 1) % 50 == 0:
             print("Epoch: ", (epoch + 1), " Step: ", (index + 1), " /", total_step, " Loss: ", loss_batch.item())
 
 
 
-    loss_epoch.append(loss_batch.item())
-    print("Epoch: ", (epoch + 1), " Loss: ", loss_batch.item())
+    #loss_epoch.append(loss_batch.item())
+    epoch_loss = t_loss/len(D1)
+    string = "Epoch: "+ str(epoch + 1) + " Loss: "+ str(epoch_loss) + "\n"
+    print(string)
+    # file.write(string)
+    #for param_group in optimizer.param_groups:
+        #print("lr: ", param_group['lr'])
+    
+    
+    with torch.no_grad():
+         correct = 0
+         total = 0
+         v_loss = 0
+         r_loss = 0
+         D3 = DataLoader(cubs_dataset_train, batch_size=batch_size,
+                       sampler=valid_sampler)
+         for ind, (images, labels) in enumerate(D3):
+             images = images.to(device)
+             labels = labels.to(device)
+             outputs = resnet(images)
+             v_loss += criterion(outputs, labels)
+             r_loss += v_loss.item()
+             _, predicted = torch.max(outputs.data, 1)
+             total += labels.size(0)
+             correct += (predicted == labels).sum().item()
+    
+         acc = 100*correct/total
+         accuracy_epoch.append(acc)
+         # string2 = "Epoch: " +str(epoch)+ " Accuracy: " + str(acc) +"\n"
+         string3 = "Epoch: " + str(epoch)+" Training Loss: "+str(epoch_loss)+ " Validation Loss: "+ str(r_loss/len(D3)) +"\n"
+         file.write(string3)
+         print('Accuracy: ', acc, " Validation Loss: ", r_loss/len(D3))
+    
+    if v_loss.item() < 61.00:
+        checkpoint = {
+                'model': resnet, 
+                'state_dict': resnet.state_dict(), 
+                'optimizer': optimizer.state_dict()
+                }
+        mod_name = "model/model_1_" + str(epoch) + ".pth"
+        # torch.save(checkpoint, mod_name)
+        # print("model saved")
+    if epoch == 29:
+        for params in resnet.parameters():
+            params.require_grad = False
+        for params in resnet.layer4.parameters():
+            params.require_grad = True
+        for params in resnet.fc.parameters():
+            params.require_grad = True
+
+        l_ambda = 1
+
+    scheduler.step()
     for param_group in optimizer.param_groups:
         print("lr: ", param_group['lr'])
 
-    correct = 0
-    total = 0
-    D3 = DataLoader(cubs_dataset_train, batch_size=batch_size,
-                    sampler=valid_sampler)
-    for ind, (images, labels) in enumerate(D3):
-        images = images.to(device)
-        labels = labels.to(device)
-        outputs = resnet(images)
-        _, predicted = torch.max(outputs.data, 1)
-        total += labels.size(0)
-        correct += (predicted == labels).sum().item()
-    
-    acc = 100*correct/total
-    accuracy_epoch.append(acc)
-    print('Accuracy: ', acc)
-
 print("finished training")
-
+# file.close()
 # gc.collect()
 
-epochs_axis = list(range(1,num_epochs+1))
-plt.plot(loss_epoch,epochs_axis)
-plt.plot(accuracy_epoch,epochs_axis)
+#epochs_axis = list(range(1,num_epochs+1))
+#plt.plot(loss_epoch,epochs_axis)
+#plt.plot(accuracy_epoch,epochs_axis)
 
-print('testing now..')
+print('testing model...')
 resnet.eval()  # eval mode 
 with torch.no_grad():
     correct = 0
@@ -229,8 +267,13 @@ with torch.no_grad():
         _, predicted = torch.max(outputs.data, 1)
         total += labels.size(0)
         correct += (predicted == labels).sum().item()
+        
+    final = 100*correct/total
+    print('Test Accuracy of the model: {} %'.format(100*correct / total))
+    string_final = "Test accuracy of the model: "+ str(final)+"\n"
+    file.write(string_final)
 
-    print('Test Accuracy of the model: {} %'.format(correct / total))
+file.close()
 
 # ls model -al
 '''
