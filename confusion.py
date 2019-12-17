@@ -250,7 +250,7 @@ for epoch in range(num_epochs):
 
         l_ambda = 1
     
-    # step scheduler for learning rate decay
+    # learning rate decay
     scheduler.step()
     for param_group in optimizer.param_groups:
         print("lr: ", param_group['lr'])
