@@ -1,7 +1,5 @@
-# import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-# import glob
 
 import os
 import torch
@@ -11,10 +9,7 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from torch.autograd import Variable
 import torch.nn as nn
 import torch.nn.functional as F
-
-# import gc
 import pandas as pd
-# from PIL import Image
 
 from torchvision import models
 from torchvision.datasets.folder import default_loader
