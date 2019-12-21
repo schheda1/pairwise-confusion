@@ -66,13 +66,14 @@ class CubsDataset(Dataset):
 
         return image, class_id
 
-
+# transforms for training set
 transforms_train = transforms.Compose([transforms.Resize((224, 224)),
                                          transforms.RandomHorizontalFlip(),
                                          transforms.ToTensor(),
                                          transforms.Normalize((0.485,0.456,0.406), (0.229,0.224,0.225))
                                          ])
 
+# transforms for testing set
 transforms_test = transforms.Compose([transforms.Resize((224,224)),
                                          transforms.ToTensor(),
                                          transforms.Normalize((0.485,0.456,0.406), (0.229,0.224,0.225))    
@@ -105,7 +106,7 @@ valid_sampler = SubsetRandomSampler(val_indices)
 
 
 
-
+#pretrained resnet-50 backbone to the Siamese learning method
 resnet = models.resnet50(pretrained=True)
 
 # resnet.to(device)
@@ -118,11 +119,13 @@ print('training about to start')
 
 resnet = resnet.float().to(device)
 criterion = nn.CrossEntropyLoss()
+
+## Learning with Stochastic Gradient Descent
 optimizer = torch.optim.SGD(resnet.parameters(), lr=1e-3, momentum=0.9, weight_decay=0.0001)
 # optimizer = torch.optim.Adamax(model.parameters(), lr=0.01)
 num_epochs = 30
 num_classes = 200
-
+file=open('jsd_log.txt', 'a')
 loss_epoch = []
 accuracy_epoch = []
 
@@ -131,7 +134,7 @@ l_ambda = 10
 batch_size = 12
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
-file=open('jsd_log.txt', 'a')
+
 for epoch in range(num_epochs):
     # generating a shuffled dataloader of training set
   D1 = DataLoader(cubs_dataset_train, batch_size=batch_size, 
@@ -169,8 +172,6 @@ for epoch in range(num_epochs):
         mean = (p1_np + p2_np)/2
         divergence = sum((sc.entropy(p1_np, mean) + sc.entropy(p2_np, mean))/2)
 
-        # cs_batch = sum(cos_similarity(op1,op2))
-        # loss_batch = loss1 + loss2 + 2*cs_batch / len_batch
         loss_batch = loss1 + loss2 + l_ambda*divergence / len_batch
         t_loss += loss_batch
         
@@ -186,7 +187,8 @@ for epoch in range(num_epochs):
   print("Epoch: ", (epoch + 1), " Loss: ", loss_batch.item())
   for param_group in optimizer.param_groups:
       print("lr: ", param_group['lr'])
-
+  
+  ## perform validation after each epoch
   with torch.no_grad():
       correct = 0
       total = 0
@@ -216,10 +218,6 @@ print("finished training")
 #file.close()
 # gc.collect()
 
-epochs_axis = list(range(1,num_epochs+1))
-plt.plot(loss_epoch,epochs_axis)
-plt.plot(accuracy_epoch,epochs_axis)
-
 print('testing now..')
 resnet.eval()  # eval mode 
 with torch.no_grad():
@@ -240,6 +238,3 @@ with torch.no_grad():
     file.write(string_final)
 
 file.close()
-# ls model -al
-
-
