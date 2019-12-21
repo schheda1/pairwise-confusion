@@ -63,11 +63,12 @@ class CubsDataset(Dataset):
 
         return image, class_id
 
-
+# transforms for training set
 transforms_train = transforms.Compose([transforms.Resize((224, 224)),
                                          transforms.RandomHorizontalFlip(),
                                          transforms.ToTensor() 
                                          ])
+# transforms for testing set
 transforms_test = transforms.Compose([transforms.Resize((224,224)), 
                                          transforms.ToTensor()
                                          ])
@@ -98,7 +99,7 @@ valid_sampler = SubsetRandomSampler(val_indices)
 
 
 
-
+#pretrained resnet-50 backbone to the Siamese learning method
 resnet = models.resnet50(pretrained=True)
 
 # resnet.to(device)
@@ -111,20 +112,27 @@ print('training about to start')
 
 resnet = resnet.float().to(device)
 criterion = nn.CrossEntropyLoss()
+
+## Learning with Stochastic Gradient Descent
 optimizer = torch.optim.SGD(resnet.parameters(), lr=1e-3, momentum=0.9, weight_decay=0.0001)
 # optimizer = torch.optim.Adamax(model.parameters(), lr=0.01)
 num_epochs = 60
 num_classes = 200
+file=open('cs_log.txt', 'a')
 
 loss_epoch = []
 accuracy_epoch = []
+
+#define cosine similarity
 cos_similarity = nn.CosineSimilarity(dim=1, eps=1e-6)
 gamma = 0
 l_ambda = 2
 batch_size = 12
+
+## keeping an adaptive learning rate that decays with time
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=15, gamma=0.1)
 # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.95)
-file=open('cs_log.txt', 'a')
+
 for epoch in range(num_epochs):
     # generating a shuffled dataloader of training set
   D1 = DataLoader(cubs_dataset_train, batch_size=batch_size, 
@@ -172,8 +180,8 @@ for epoch in range(num_epochs):
   for param_group in optimizer.param_groups:
       print("lr: ", param_group['lr'])
   
-  # scheduler.step()
   
+  ## perform validation after each epoch
   with torch.no_grad():
        correct = 0
        total = 0
