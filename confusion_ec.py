@@ -125,7 +125,7 @@ criterion = nn.CrossEntropyLoss()
 ## Learning with Stochastic Gradient Descent
 optimizer = torch.optim.SGD(resnet.parameters(), lr=base_lr, momentum=0.9, weight_decay=0.0001)
 # optimizer = torch.optim.Adamax(model.parameters(), lr=0.01)
-num_epochs = 32
+num_epochs = 30
 num_classes = 200
 file=open("ec_log.txt","a")
 loss_epoch = []
@@ -238,8 +238,9 @@ for epoch in range(num_epochs):
         mod_name = "model/model_1_" + str(epoch) + ".pth"
         # torch.save(checkpoint, mod_name)
         # print("model saved")
-    '''
+    
     # freeze network except layer4 and last linear layer
+    
     if epoch == 29:
         for params in resnet.parameters():
             params.require_grad = False
@@ -249,7 +250,7 @@ for epoch in range(num_epochs):
             params.require_grad = True
 
         l_ambda = 1
-    
+    '''
     # learning rate decay
     scheduler.step()
     for param_group in optimizer.param_groups:
