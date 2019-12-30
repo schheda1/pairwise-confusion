@@ -87,20 +87,9 @@ print('loaded train and test sets')
 
 batch_size = 12
 validation_split = .05
-shuffle_dataset = True
-random_seed= 43
 dataset_size = len(cubs_dataset_train)
 indices = list(range(dataset_size))
 split = int(np.floor(validation_split * dataset_size))
-if shuffle_dataset :
-    np.random.seed(random_seed)
-    np.random.shuffle(indices)
-train_indices, val_indices = indices[split:], indices[:split]
-
-# Creating PT data samplers and loaders:
-train_sampler = SubsetRandomSampler(train_indices)
-valid_sampler = SubsetRandomSampler(val_indices)
-
 
 
 #pretrained resnet-50 backbone to the Siamese learning method
@@ -136,9 +125,17 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
 for epoch in range(num_epochs):
     # generating a shuffled dataloader of training sets
-  D1 = DataLoader(cubs_dataset_train, batch_size=batch_size, 
+    random_seed= 43
+    np.random.seed(random_seed+epoch)
+    np.random.shuffle(indices)    
+    
+    train_indices, val_indices = indices[split:], indices[:split]
+    train_sampler = SubsetRandomSampler(train_indices)
+    valid_sampler = SubsetRandomSampler(val_indices)
+    
+    D1 = DataLoader(cubs_dataset_train, batch_size=batch_size, 
                                            sampler=train_sampler)
-  D2 = DataLoader(cubs_dataset_train, batch_size=batch_size, 
+    D2 = DataLoader(cubs_dataset_train, batch_size=batch_size, 
                                            sampler=train_sampler)
     total_step = len(D1)
     t_loss = 0 ## total training loss per epoch definied by t_loss
