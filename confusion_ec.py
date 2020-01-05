@@ -90,7 +90,13 @@ validation_split = .05
 dataset_size = len(cubs_dataset_train)
 indices = list(range(dataset_size))
 split = int(np.floor(validation_split * dataset_size))
-
+random_seed= 43
+np.random.seed(random_seed+epoch)
+np.random.shuffle(indices)    
+  
+train_indices, val_indices = indices[split:], indices[:split]
+train_sampler = SubsetRandomSampler(train_indices)
+valid_sampler = SubsetRandomSampler(val_indices)
 
 #pretrained resnet-50 backbone to the Siamese learning method
 resnet = models.resnet50(pretrained=True)
@@ -125,13 +131,7 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
 for epoch in range(num_epochs):
     # generating a shuffled dataloader of training sets
-    random_seed= 43
-    np.random.seed(random_seed+epoch)
-    np.random.shuffle(indices)    
-    
-    train_indices, val_indices = indices[split:], indices[:split]
-    train_sampler = SubsetRandomSampler(train_indices)
-    valid_sampler = SubsetRandomSampler(val_indices)
+
     
     D1 = DataLoader(cubs_dataset_train, batch_size=batch_size, 
                                            sampler=train_sampler)
