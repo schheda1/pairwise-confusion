@@ -72,7 +72,7 @@ transforms_train = transforms.Compose([transforms.Resize((224, 224)),
                                          ])
 
 # transforms for testing set
-transforms_train = transforms.Compose([transforms.Resize((224, 224)),
+transforms_test = transforms.Compose([transforms.Resize((224, 224)),
                                          transforms.ToTensor()
                                          ])
 
@@ -90,8 +90,8 @@ validation_split = .05
 dataset_size = len(cubs_dataset_train)
 indices = list(range(dataset_size))
 split = int(np.floor(validation_split * dataset_size))
-random_seed= 43
-np.random.seed(random_seed+epoch)
+random_seed= 46
+np.random.seed(random_seed)
 np.random.shuffle(indices)    
   
 train_indices, val_indices = indices[split:], indices[:split]
